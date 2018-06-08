@@ -1,16 +1,22 @@
 package main
 
-import "github.com/gordonmleigh/golog"
+import (
+	"foopackage"
+
+	"github.com/gordonmleigh/golog"
+)
+
+var debug = golog.ForPackage(golog.DebugLevel)
 
 func main() {
-	debug := golog.NewLogger(golog.DebugLevel, "hello")
-
 	golog.SetWriter(golog.ConsoleWriter, golog.DebugLevel, golog.Wildcard)
 	golog.SetWriter(golog.ConsoleWriter, "ERROR:*")
 
-	err := golog.NewLogger("ERROR:hello")
+	err := golog.NewLogger(golog.ErrorLevel, "hello")
 
 	debug.Log("hello world")
+	debug.Log(golog.GetPackageName(-1))
+	foopackage.LogSomething()
 
 	err.Log(
 		"BANG!",

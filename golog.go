@@ -3,6 +3,7 @@ package golog
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"sync/atomic"
 )
@@ -66,7 +67,7 @@ func (l *Logger) Log(msg string, values ...Value) {
 
 // ConsoleWriter is a LogWriterFunc which logs a message to stderr.
 func ConsoleWriter(name, msg string, values []Value) {
-	fmt.Fprintf(os.Stderr, "%s    \t%s\n", name, msg)
+	fmt.Fprintf(os.Stderr, "[%s] %s\n", name, msg)
 	for _, v := range values {
 		fmt.Fprintf(os.Stderr, "\t%s    \t%v\n", v.Name, v.Value)
 	}
@@ -83,4 +84,30 @@ func SetWriter(writer LogWriterFunc, filter ...string) {
 // NewLogger makes a new logger and registers it with the log manager.
 func NewLogger(name ...string) *Logger {
 	return manager.NewLogger(strings.Join(name, NameSeperator))
+}
+
+// ForPackage creates a logger named for the current package.
+func ForPackage(prefix ...string) *Logger {
+	parts := append([]string{}, prefix...)
+	parts = append(parts, strings.Split(GetPackageName(1), "/")...)
+	return NewLogger(parts...)
+}
+
+// GetPackageName gets the name of the package of the caller.
+func GetPackageName(skipCallers int) string {
+	pc, _, _, ok := runtime.Caller(1 + skipCallers)
+	if !ok {
+		panic("can't get caller info")
+	}
+	fn := runtime.FuncForPC(pc)
+	pkg := fn.Name()
+	pkg = pkg[:strings.LastIndex(pkg, ".")]
+
+	// trim off vendoring path
+	vi := strings.LastIndex(pkg, "vendor/")
+	if vi > -1 {
+		pkg = pkg[vi+len("vendor/"):]
+	}
+
+	return pkg
 }
