@@ -1,7 +1,6 @@
 package golog
 
 import (
-	"errors"
 	"sort"
 	"strings"
 	"sync"
@@ -20,14 +19,24 @@ var _ interface {
 } = new(NameFilter)
 
 // ParseNameFilter parses a log name filter.
-func ParseNameFilter(str string) (NameFilter, error) {
+func ParseNameFilter(str string) NameFilter {
+	return MakeNameFilter(strings.Split(str, NameSeperator)...)
+}
+
+// MakeNameFilter makes a filter from the given parts.
+func MakeNameFilter(parts ...string) NameFilter {
 	f := NameFilter{
-		Parts: strings.Split(str, ":"),
+		Parts: make([]string, 0, len(parts)),
 	}
 
-	for i, p := range f.Parts {
-		if p == "*" && i < len(f.Parts)-1 {
-			return NameFilter{}, errors.New("wildcard can only appear in last position")
+	for i, p := range parts {
+		subparts := strings.Split(p, NameSeperator)
+
+		for j, sub := range subparts {
+			if p == "*" && (i < len(parts)-1 || j < len(subparts)-1) {
+				panic("wildcard can only appear in last position")
+			}
+			f.Parts = append(f.Parts, sub)
 		}
 	}
 
@@ -36,15 +45,6 @@ func ParseNameFilter(str string) (NameFilter, error) {
 		f.Wildcard = true
 	}
 
-	return f, nil
-}
-
-// MustParseNameFilter parses a name filter and panics on error.
-func MustParseNameFilter(str string) NameFilter {
-	f, err := ParseNameFilter(str)
-	if err != nil {
-		panic(err.Error())
-	}
 	return f
 }
 
@@ -113,7 +113,7 @@ func (m *LogManager) NewLogger(name string) *Logger {
 }
 
 // SetWriter sets the writer for all logs matching the pattern.
-func (m *LogManager) SetWriter(pattern NameFilter, writer LogWriterFunc) {
+func (m *LogManager) SetWriter(writer LogWriterFunc, pattern NameFilter) {
 	m.synchro.Lock()
 	defer m.synchro.Unlock()
 

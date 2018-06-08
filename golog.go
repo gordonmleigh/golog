@@ -3,7 +3,22 @@ package golog
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync/atomic"
+)
+
+// NameSeperator is the character used to seperate log name parts.
+const NameSeperator = ":"
+
+// Wildcard is used to match multiple logs.
+const Wildcard = "*"
+
+// The following constants are conventional log levels:
+const (
+	DebugLevel = "DEBUG"
+	InfoLevel  = "INFO"
+	WarnLevel  = "WARN"
+	ErrorLevel = "ERROR"
 )
 
 var manager LogManager
@@ -61,11 +76,11 @@ func ConsoleWriter(name, msg string, values []Value) {
 // Log names are conventionally colon-seperated identifiers, e.g.
 // DEBUG:mymodule:mycomponent.  Multiple logs can be selected using an asterisk,
 // e.g. DEBUG:*.
-func SetWriter(pattern NameFilter, writer LogWriterFunc) {
-	manager.SetWriter(pattern, writer)
+func SetWriter(writer LogWriterFunc, filter ...string) {
+	manager.SetWriter(writer, MakeNameFilter(filter...))
 }
 
 // NewLogger makes a new logger and registers it with the log manager.
-func NewLogger(name string) *Logger {
-	return manager.NewLogger(name)
+func NewLogger(name ...string) *Logger {
+	return manager.NewLogger(strings.Join(name, NameSeperator))
 }
